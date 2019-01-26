@@ -4,7 +4,7 @@
 # Redistributable under the revised BSD license
 # https://opensource.org/licenses/BSD-3-Clause
 
-from __future__ import print_function
+
 import os
 import sys
 
@@ -43,12 +43,106 @@ else:
 debugger_cls = shell.debugger_cls
 def_colors = shell.colors
 
+def add_custom_keybinds(p):
+    def next_command(event):
+        p.preloop()
+        line = p.precmd("next")
+        stop = p.onecmd(line)
+        stop = p.postcmd(stop, line)
+        p.postloop()
+        buff = event.current_buffer
+        buff.accept_action.validate_and_handle(event.cli, buff)
+    def up_command(event):
+        p.preloop()
+        line = p.precmd("up")
+        stop = p.onecmd(line)
+        stop = p.postcmd(stop, line)
+        p.postloop()
+        buff = event.current_buffer
+        buff.accept_action.validate_and_handle(event.cli, buff)
+    def down_command(event):
+        p.preloop()
+        line = p.precmd("down")
+        stop = p.onecmd(line)
+        stop = p.postcmd(stop, line)
+        p.postloop()
+        buff = event.current_buffer
+        buff.accept_action.validate_and_handle(event.cli, buff)
+    def where_command(event):
+        p.preloop()
+        line = p.precmd("where")
+        stop = p.onecmd(line)
+        stop = p.postcmd(stop, line)
+        p.postloop()
+        buff = event.current_buffer
+        buff.accept_action.validate_and_handle(event.cli, buff)
+    def args_command(event):
+        p.preloop()
+        line = p.precmd("args")
+        stop = p.onecmd(line)
+        stop = p.postcmd(stop, line)
+        p.postloop()
+        buff = event.current_buffer
+        buff.accept_action.validate_and_handle(event.cli, buff)
+    def continue_command(event):
+        p.preloop()
+        line = p.precmd("continue")
+        stop = p.onecmd(line)
+        stop = p.postcmd(stop, line)
+        p.postloop()
+        buff = event.current_buffer
+        buff.accept_action.validate_and_handle(event.cli, buff)
+    def longlist_command(event):
+        p.preloop()
+        line = p.precmd("longlist")
+        stop = p.onecmd(line)
+        stop = p.postcmd(stop, line)
+        p.postloop()
+        buff = event.current_buffer
+        buff.accept_action.validate_and_handle(event.cli, buff)
+
+    import signal
+    from prompt_toolkit.keys import Keys
+    from prompt_toolkit.key_binding.manager import KeyBindingManager
+    from prompt_toolkit.key_binding.bindings.completion import display_completions_like_readline
+    from prompt_toolkit.enums import DEFAULT_BUFFER
+    from prompt_toolkit.filters import (Condition, HasFocus, HasSelection, ViInsertMode, EmacsInsertMode)
+    from prompt_toolkit.interface import CommandLineInterface
+    from IPython.terminal.shortcuts import suspend_to_bg, cursor_in_leading_ws
+    kbmanager = KeyBindingManager.for_prompt()
+    supports_suspend = Condition(lambda cli: hasattr(signal, 'SIGTSTP'))
+
+    kbmanager.registry.add_binding(Keys.ControlZ, filter=supports_suspend
+                                  )(suspend_to_bg)
+    kbmanager.registry.add_binding(Keys.ControlN)(next_command)
+    kbmanager.registry.add_binding(Keys.ControlU)(up_command)
+    kbmanager.registry.add_binding(Keys.ControlD)(down_command)
+    kbmanager.registry.add_binding(Keys.ControlW)(where_command)
+    kbmanager.registry.add_binding(Keys.ControlA)(args_command)
+    kbmanager.registry.add_binding(Keys.ControlT)(continue_command)
+    kbmanager.registry.add_binding(Keys.ControlL)(longlist_command)
+
+    if p.shell.display_completions == 'readlinelike':
+        kbmanager.registry.add_binding(Keys.ControlI,
+                             filter=(HasFocus(DEFAULT_BUFFER)
+                                     & ~HasSelection()
+                                     & ViInsertMode() | EmacsInsertMode()
+                                     & ~cursor_in_leading_ws
+                                     ))(display_completions_like_readline)
+    p._pt_app.key_bindings_registry = kbmanager.registry
+    p.pt_cli = CommandLineInterface(p._pt_app, eventloop=p.shell._eventloop)
+    return p
+
+
 def _init_pdb(context=3, commands=[]):
     try:
         p = debugger_cls(def_colors, context=context)
     except TypeError:
         p = debugger_cls(def_colors)
     p.rcLines.extend(commands)
+
+    p = add_custom_keybinds(p)
+
     return p
 
 
@@ -60,7 +154,7 @@ def wrap_sys_excepthook():
         sys.excepthook = BdbQuit_excepthook
 
 
-def set_trace(frame=None, context=3):
+def set_trace(frame=None, context=15):
     wrap_sys_excepthook()
     if frame is None:
         frame = sys._getframe().f_back
