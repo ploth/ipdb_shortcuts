@@ -1,3 +1,27 @@
+Added shortcuts
+=============
+
+``Ctrl+n``: next
+
+``Ctrl+o``: up
+
+``Ctrl+p``: down
+
+``Ctrl+w``: where
+
+``Ctrl+a``: args
+
+``Ctrl+t``: continue
+
+``Ctrl+l``: longlist
+
+``Ctrl+v``: print all local variables with their type in a table
+
+Also: context was set to 15 lines at default.
+
+This was a quick and dirty hack to avoid having to press `Enter` all the time.
+See ``add_custom_keybinds`` function in ``__main__.py`` to see how the shortcuts were added.
+
 IPython `pdb`
 =============
 
