@@ -3,6 +3,8 @@ Added shortcuts
 
 ``Ctrl+n``: next
 
+``Ctrl+s``: step
+
 ``Ctrl+o``: up
 
 ``Ctrl+p``: down
