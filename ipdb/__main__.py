@@ -52,6 +52,14 @@ def add_custom_keybinds(p):
         p.postloop()
         buff = event.current_buffer
         buff.accept_action.validate_and_handle(event.cli, buff)
+    def step_command(event):
+        p.preloop()
+        line = p.precmd("step")
+        stop = p.onecmd(line)
+        stop = p.postcmd(stop, line)
+        p.postloop()
+        buff = event.current_buffer
+        buff.accept_action.validate_and_handle(event.cli, buff)
     def up_command(event):
         p.preloop()
         line = p.precmd("up")
@@ -100,6 +108,14 @@ def add_custom_keybinds(p):
         p.postloop()
         buff = event.current_buffer
         buff.accept_action.validate_and_handle(event.cli, buff)
+    def list_locals_command(event):
+        p.preloop()
+        line = p.precmd("from tabulate import tabulate;;pp tabulate([[k, type(v).__name__, '|'] for k, v in locals().items() if k not in ['tabulate', 'ipdb']])")
+        stop = p.onecmd(line)
+        stop = p.postcmd(stop, line)
+        p.postloop()
+        buff = event.current_buffer
+        buff.accept_action.validate_and_handle(event.cli, buff)
 
     import signal
     from prompt_toolkit.keys import Keys
@@ -115,12 +131,14 @@ def add_custom_keybinds(p):
     kbmanager.registry.add_binding(Keys.ControlZ, filter=supports_suspend
                                   )(suspend_to_bg)
     kbmanager.registry.add_binding(Keys.ControlN)(next_command)
-    kbmanager.registry.add_binding(Keys.ControlU)(up_command)
-    kbmanager.registry.add_binding(Keys.ControlD)(down_command)
+    kbmanager.registry.add_binding(Keys.ControlS)(step_command)
+    kbmanager.registry.add_binding(Keys.ControlO)(up_command)
+    kbmanager.registry.add_binding(Keys.ControlP)(down_command)
     kbmanager.registry.add_binding(Keys.ControlW)(where_command)
     kbmanager.registry.add_binding(Keys.ControlA)(args_command)
     kbmanager.registry.add_binding(Keys.ControlT)(continue_command)
     kbmanager.registry.add_binding(Keys.ControlL)(longlist_command)
+    kbmanager.registry.add_binding(Keys.ControlV)(list_locals_command)
 
     if p.shell.display_completions == 'readlinelike':
         kbmanager.registry.add_binding(Keys.ControlI,
