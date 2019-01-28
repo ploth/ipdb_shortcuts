@@ -51,7 +51,7 @@ def add_custom_keybinds(p):
         stop = p.postcmd(stop, line)
         p.postloop()
         buff = event.current_buffer
-        buff.accept_action.validate_and_handle(event.cli, buff)
+        buff.validate_and_handle()
     def step_command(event):
         p.preloop()
         line = p.precmd("step")
@@ -59,7 +59,7 @@ def add_custom_keybinds(p):
         stop = p.postcmd(stop, line)
         p.postloop()
         buff = event.current_buffer
-        buff.accept_action.validate_and_handle(event.cli, buff)
+        buff.validate_and_handle()
     def up_command(event):
         p.preloop()
         line = p.precmd("up")
@@ -67,7 +67,7 @@ def add_custom_keybinds(p):
         stop = p.postcmd(stop, line)
         p.postloop()
         buff = event.current_buffer
-        buff.accept_action.validate_and_handle(event.cli, buff)
+        buff.validate_and_handle()
     def down_command(event):
         p.preloop()
         line = p.precmd("down")
@@ -75,7 +75,7 @@ def add_custom_keybinds(p):
         stop = p.postcmd(stop, line)
         p.postloop()
         buff = event.current_buffer
-        buff.accept_action.validate_and_handle(event.cli, buff)
+        buff.validate_and_handle()
     def where_command(event):
         p.preloop()
         line = p.precmd("where")
@@ -83,7 +83,7 @@ def add_custom_keybinds(p):
         stop = p.postcmd(stop, line)
         p.postloop()
         buff = event.current_buffer
-        buff.accept_action.validate_and_handle(event.cli, buff)
+        buff.validate_and_handle()
     def args_command(event):
         p.preloop()
         line = p.precmd("args")
@@ -91,7 +91,7 @@ def add_custom_keybinds(p):
         stop = p.postcmd(stop, line)
         p.postloop()
         buff = event.current_buffer
-        buff.accept_action.validate_and_handle(event.cli, buff)
+        buff.validate_and_handle()
     def continue_command(event):
         p.preloop()
         line = p.precmd("continue")
@@ -99,7 +99,7 @@ def add_custom_keybinds(p):
         stop = p.postcmd(stop, line)
         p.postloop()
         buff = event.current_buffer
-        buff.accept_action.validate_and_handle(event.cli, buff)
+        buff.validate_and_handle()
     def longlist_command(event):
         p.preloop()
         line = p.precmd("longlist")
@@ -107,7 +107,7 @@ def add_custom_keybinds(p):
         stop = p.postcmd(stop, line)
         p.postloop()
         buff = event.current_buffer
-        buff.accept_action.validate_and_handle(event.cli, buff)
+        buff.validate_and_handle()
     def list_locals_command(event):
         p.preloop()
         line = p.precmd("from tabulate import tabulate;;pp tabulate([[k, type(v).__name__, '|'] for k, v in locals().items() if k not in ['tabulate', 'ipdb']])")
@@ -115,40 +115,65 @@ def add_custom_keybinds(p):
         stop = p.postcmd(stop, line)
         p.postloop()
         buff = event.current_buffer
-        buff.accept_action.validate_and_handle(event.cli, buff)
+        buff.validate_and_handle()
 
-    import signal
-    from prompt_toolkit.keys import Keys
-    from prompt_toolkit.key_binding.manager import KeyBindingManager
-    from prompt_toolkit.key_binding.bindings.completion import display_completions_like_readline
+    from prompt_toolkit.key_binding import KeyBindings
+    from prompt_toolkit.shortcuts.prompt import PromptSession
+    from prompt_toolkit.enums import EditingMode
+    from prompt_toolkit.formatted_text import PygmentsTokens
     from prompt_toolkit.enums import DEFAULT_BUFFER
-    from prompt_toolkit.filters import (Condition, HasFocus, HasSelection, ViInsertMode, EmacsInsertMode)
-    from prompt_toolkit.interface import CommandLineInterface
+    from prompt_toolkit.filters import (Condition, has_focus, has_selection,
+        vi_insert_mode, emacs_insert_mode)
+    from prompt_toolkit.key_binding.bindings.completion import display_completions_like_readline
+    from pygments.token import Token
     from IPython.terminal.shortcuts import suspend_to_bg, cursor_in_leading_ws
-    kbmanager = KeyBindingManager.for_prompt()
-    supports_suspend = Condition(lambda cli: hasattr(signal, 'SIGTSTP'))
+    from IPython.core.completer import IPCompleter
+    from IPython.terminal.ptutils import IPythonPTCompleter
+    import signal
 
-    kbmanager.registry.add_binding(Keys.ControlZ, filter=supports_suspend
-                                  )(suspend_to_bg)
-    kbmanager.registry.add_binding(Keys.ControlN)(next_command)
-    kbmanager.registry.add_binding(Keys.ControlS)(step_command)
-    kbmanager.registry.add_binding(Keys.ControlO)(up_command)
-    kbmanager.registry.add_binding(Keys.ControlP)(down_command)
-    kbmanager.registry.add_binding(Keys.ControlW)(where_command)
-    kbmanager.registry.add_binding(Keys.ControlA)(args_command)
-    kbmanager.registry.add_binding(Keys.ControlT)(continue_command)
-    kbmanager.registry.add_binding(Keys.ControlL)(longlist_command)
-    kbmanager.registry.add_binding(Keys.ControlV)(list_locals_command)
+    def get_prompt_tokens():
+        return [(Token.Prompt, p.prompt)]
+
+    compl = IPCompleter(shell=p.shell,
+                                namespace={},
+                                global_namespace={},
+                                parent=p.shell,
+                               )
+    p._ptcomp = IPythonPTCompleter(compl)
+
+    kb = KeyBindings()
+    supports_suspend = Condition(lambda: hasattr(signal, 'SIGTSTP'))
+    kb.add('c-z', filter=supports_suspend)(suspend_to_bg)
 
     if p.shell.display_completions == 'readlinelike':
-        kbmanager.registry.add_binding(Keys.ControlI,
-                             filter=(HasFocus(DEFAULT_BUFFER)
-                                     & ~HasSelection()
-                                     & ViInsertMode() | EmacsInsertMode()
-                                     & ~cursor_in_leading_ws
-                                     ))(display_completions_like_readline)
-    p._pt_app.key_bindings_registry = kbmanager.registry
-    p.pt_cli = CommandLineInterface(p._pt_app, eventloop=p.shell._eventloop)
+        kb.add('tab', filter=(has_focus(DEFAULT_BUFFER)
+                              & ~has_selection
+                              & vi_insert_mode | emacs_insert_mode
+                              & ~cursor_in_leading_ws
+                          ))(display_completions_like_readline)
+
+    kb.add('c-n')(next_command)
+    kb.add('c-s')(step_command)
+    kb.add('c-o')(up_command)
+    kb.add('c-p')(down_command)
+    kb.add('c-w')(where_command)
+    kb.add('c-a')(args_command)
+    kb.add('c-t')(continue_command)
+    kb.add('c-l')(longlist_command)
+    kb.add('c-v')(list_locals_command)
+
+    p.pt_app = PromptSession(
+        message=(lambda: PygmentsTokens(get_prompt_tokens())),
+        editing_mode=getattr(EditingMode, p.shell.editing_mode.upper()),
+        key_bindings=kb,
+        history=p.shell.debugger_history,
+        completer=p._ptcomp,
+        enable_history_search=True,
+        mouse_support=p.shell.mouse_support,
+        complete_style=p.shell.pt_complete_style,
+        style=p.shell.style,
+        inputhook=p.shell.inputhook,
+    )
     return p
 
 
