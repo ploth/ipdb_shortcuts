@@ -155,7 +155,7 @@ def add_custom_keybinds(p):
     kb.add('c-n')(next_command)
     kb.add('c-s')(step_command)
     kb.add('c-o')(up_command)
-    kb.add('c-p')(down_command)
+    kb.add('c-i')(down_command)
     kb.add('c-w')(where_command)
     kb.add('c-a')(args_command)
     kb.add('c-t')(continue_command)
@@ -271,13 +271,13 @@ def main():
     except ImportError:
         class Restart(Exception):
             pass
-    
+
     opts, args = getopt.getopt(sys.argv[1:], 'hc:', ['--help', '--command='])
 
     if not args:
         print(_usage)
         sys.exit(2)
-    
+
     commands = []
     for opt, optarg in opts:
         if opt in ['-h', '--help']:
